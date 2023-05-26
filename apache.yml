@@ -1,0 +1,50 @@
+---
+- name: Déploiement des hôtes virtuels Apache
+  hosts: cibles
+  become: true
+  tasks:
+    - name: Installer Apache
+      apt:
+        name: apache2
+        state: present
+
+    - name: Copier le fichier de configuration de l'hôte virtuel pour www.hei.school
+      template:
+        src: templates/virtualhost.conf.j2
+        dest: /etc/apache2/sites-available/www.hei.school.conf
+      notify:
+        - Activer l'hôte virtuel
+
+    - name: Copier le fichier de configuration de l'hôte virtuel pour api.hei.school
+      template:
+        src: templates/virtualhost.conf.j2
+        dest: /etc/apache2/sites-available/api.hei.school.conf
+      notify:
+        - Activer l'hôte virtuel
+
+    - name: Copier le fichier de configuration de l'hôte virtuel pour front.hei.school
+      template:
+        src: templates/virtualhost.conf.j2
+        dest: /etc/apache2/sites-available/front.hei.school.conf
+      notify:
+        - Activer l'hôte virtuel
+
+    - name: Supprimer le fichier de configuration par défaut
+      file:
+        path: /etc/apache2/sites-enabled/000-default.conf
+        state: absent
+
+  handlers:
+    - name: Activer l'hôte virtuel
+      command: a2ensite {{ item }}
+      with_items:
+        - www.hei.school.conf
+        - api.hei.school.conf
+        - front.hei.school.conf
+      notify:
+        - Redémarrer Apache
+
+    - name: Redémarrer Apache
+      service:
+        name: apache2
+        state: restarted
